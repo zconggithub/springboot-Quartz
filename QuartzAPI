@@ -1,0 +1,80 @@
+									《#springBoot之Quartz学习》
+author:zhoucong   QQ：2632652610@qq.com
+
+#【springBoot之Quartz基础理论请看同目录下另外一个readAboutQuzrtz.md文件】
+
+
+
+
+
+参数传递和状态处理方式：
+1.参数传递。使用job.getJobDataMap().put()方式向Job当中传递参数，JobDataMap类实际上最终继承了实现Map接口的"DirtyFlagMap"类，而DirtyFlagMap内部又保存了一个HashMap的引用，操作都是针对这个HashMap进行的。
+2.JobDataMap的持久化 即PersistJobDataAfterExecution这个注解的使用。加上注解之后，每次执行完，JobDataMap都会被序列化，上次任务执行放入的值都会保存下来
+
+
+
+#一、Scheduler的API
+
+
+
+
+2、JobDetailImpl类 / JobDetail接口
+
+JobDetailImpl类实现了JobDetail接口，用来描述一个job，定义了job所有属性及其get/set方法。
+了解job拥有哪些属性，就能知道quartz能提供什么样的能力，下面用表格列出job若干核心属性。
+
+属性名		说明
+class		必须是job实现类（比如JobImpl），用来绑定一个具体job
+name		job名称。如果未指定，会自动分配一个唯一名称。所有job都必须拥有一个唯一name，如果两个job的name重复，则只有最前面的job能被调度
+group		job所属的组名
+description	job描述
+durability	是否持久化。如果job设置为非持久，当没有活跃的trigger与之关联的时候，job会自动从scheduler中删除。也就是说，非持久job的生命期是由trigger的存在与否决定的
+shouldRecover	是否可恢复。如果job设置为可恢复，一旦job执行时scheduler发生hard shutdown（比如进程崩溃或关机），当scheduler重启后，该job会被重新执行
+jobDataMap	除了上面常规属性外，用户可以把任意kv数据存入jobDataMap，实现job属性的无限制扩展，执行job时可以使用这些属性数据。此属性的类型是JobDataMap，实现了Serializable接口，可做跨平台的序列化传输
+
+
+3、JobBuilder类
+
+JobDetail jobDetail = JobBuilder.newJob(MyJob.class).withIdentity("job1", "group1").build();
+上面代码是demo一个片段，可以看出JobBuilder类的作用：接收job实现类MyJob，生成JobDetail实例，默认生成JobDetailImpl实例。
+
+这里运用了建造者模式：JobImpl相当于Product；JobDetail相当于Builder，拥有job的各种属性及其get/set方法；JobBuilder相当于Director，可为一个job组装各种属性。
+
+4、trigger（触发器）
+
+trigger由若干个class和interface实现。
+
+SimpleTriggerImpl类 / SimpleTrigger接口 / Trigger接口
+
+SimpleTriggerImpl类实现了SimpleTrigger接口，SimpleTrigger接口继承了Trigger接口，它们表示触发器，用来保存触发job的策略，比如每隔几秒触发job。实际上，quartz有两大触发器：SimpleTrigger和CronTrigger，限于篇幅，本文仅介绍SimpleTrigger。
+
+Trigger诸类保存了trigger所有属性，同job属性一样，了解trigger属性有助于我们了解quartz能提供什么样的能力，下面用表格列出trigger若干核心属性。
+
+在quartz源码或注释中，经常使用fire（点火）这个动词来命名属性名，表示触发job。
+
+属性名			属性类型	说明
+name			所有trigger通用	trigger名称
+group			所有trigger通用	trigger所属的组名
+description		所有trigger通用	trigger描述
+calendarName	所有trigger通用	日历名称，指定使用哪个Calendar类，经常用来从trigger的调度计划中排除某些时间段
+misfireInstruction	所有trigger通用	错过job（未在指定时间执行的job）的处理策略，默认为MISFIRE_INSTRUCTION_SMART_POLICY。详见这篇blog[5]
+priority		所有trigger通用	优先级，默认为5。当多个trigger同时触发job时，线程池可能不够用，此时根据优先级来决定谁先触发
+jobDataMap		所有trigger通用	同job的jobDataMap。假如job和trigger的jobDataMap有同名key，通过getMergedJobDataMap()获取的jobDataMap，将以trigger的为准
+startTime		所有trigger通用	触发开始时间，默认为当前时间。决定什么时间开始触发job
+endTime			所有trigger通用	触发结束时间。决定什么时间停止触发job
+nextFireTime	SimpleTrigger私有	下一次触发job的时间
+previousFireTime	SimpleTrigger私有	上一次触发job的时间
+repeatCount	SimpleTrigger私有	需触发的总次数
+timesTriggered	SimpleTrigger私有	已经触发过的次数
+repeatInterval	SimpleTrigger私有	触发间隔时间
+5、TriggerBuilder类
+
+Trigger trigger = TriggerBuilder.newTrigger().withIdentity("trigger1", "group3")
+                            .withSchedule(SimpleScheduleBuilder.simpleSchedule().withIntervalInSeconds(3).repeatForever())
+                            .build();
+上面代码是demo一个片段，可以看出TriggerBuilder类的作用：生成Trigger实例，默认生成SimpleTriggerImpl实例。同JobBuilder一样，这里也运用了建造者模式。
+
+
+
+
+

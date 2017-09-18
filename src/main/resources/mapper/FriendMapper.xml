@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.demo.mapper.FriendMapper" >
+  <resultMap id="BaseResultMap" type="com.example.demo.bean.Friend" >
+    <id column="fid" property="fid" jdbcType="INTEGER" />
+    <result column="tid" property="tid" jdbcType="INTEGER" />
+    <result column="fname" property="fname" jdbcType="VARCHAR" />
+    <result column="ftel" property="ftel" jdbcType="VARCHAR" />
+    <result column="age" property="age" jdbcType="INTEGER" />
+    <result column="sex" property="sex" jdbcType="VARCHAR" />
+    <result column="month_sal" property="monthSal" jdbcType="DECIMAL" />
+    <result column="annual_bonus" property="annualBonus" jdbcType="DECIMAL" />
+    <result column="address" property="address" jdbcType="VARCHAR" />
+    <result column="Id_card" property="idCard" jdbcType="VARCHAR" />
+    <result column="email" property="email" jdbcType="VARCHAR" />
+    <result column="other" property="other" jdbcType="VARCHAR" />
+    <result column="census_register" property="censusRegister" jdbcType="VARCHAR" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    fid, tid, fname, ftel, age, sex, month_sal, annual_bonus, address, Id_card, email, 
+    other, census_register
+    </sql>
+  <sql id="Friend_Company_List">
+  fname, ftel, age, sex, month_sal, annual_bonus, address, Id_card, email, 
+  census_register,company_name, compant_address
+  </sql>
+
+ 
+  <select id="getFriendUnionCompanyInfo" resultType="java.util.HashMap" parameterType="java.lang.String">
+  select 
+  <include refid="Friend_Company_List" />
+  from friend left join company on firend.fid=company.fid
+  where 1=1
+  <if test="fname != null and fname != ''">
+				AND (Friend.fname LIKE CONCAT('%',#{fname,jdbcType=VARCHAR},'%')
+			</if>
+  </select>
+  
+  <select id="getAllFriend" resultType="com.example.demo.bean.Friend">
+   select 
+  <include refid="Base_Column_List" />
+  from friend
+  </select>
+  
+    <!-- 数据导出测试 -->
+  <sql id="Base_SomeColumn_List" >
+    fname, ftel, age, sex, address,census_register, email, other
+    </sql>
+  <select id="getAllFriendResultMap" resultType="java.util.HashMap">
+   select 
+  <include refid="Base_SomeColumn_List" />
+  from friend
+  </select>
+  
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select 
+    <include refid="Base_Column_List" />
+    from friend
+    where fid = #{fid,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from friend
+    where fid = #{fid,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.example.demo.bean.Friend" >
+    insert into friend (fid, tid, fname, 
+      ftel, age, sex, month_sal, 
+      annual_bonus, address, Id_card, 
+      email, other, census_register
+      )
+    values (#{fid,jdbcType=INTEGER}, #{tid,jdbcType=INTEGER}, #{fname,jdbcType=VARCHAR}, 
+      #{ftel,jdbcType=VARCHAR}, #{age,jdbcType=INTEGER}, #{sex,jdbcType=VARCHAR}, #{monthSal,jdbcType=DECIMAL}, 
+      #{annualBonus,jdbcType=DECIMAL}, #{address,jdbcType=VARCHAR}, #{idCard,jdbcType=VARCHAR}, 
+      #{email,jdbcType=VARCHAR}, #{other,jdbcType=VARCHAR}, #{censusRegister,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.example.demo.bean.Friend" >
+    insert into friend
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="fid != null" >
+        fid,
+      </if>
+      <if test="tid != null" >
+        tid,
+      </if>
+      <if test="fname != null" >
+        fname,
+      </if>
+      <if test="ftel != null" >
+        ftel,
+      </if>
+      <if test="age != null" >
+        age,
+      </if>
+      <if test="sex != null" >
+        sex,
+      </if>
+      <if test="monthSal != null" >
+        month_sal,
+      </if>
+      <if test="annualBonus != null" >
+        annual_bonus,
+      </if>
+      <if test="address != null" >
+        address,
+      </if>
+      <if test="idCard != null" >
+        Id_card,
+      </if>
+      <if test="email != null" >
+        email,
+      </if>
+      <if test="other != null" >
+        other,
+      </if>
+      <if test="censusRegister != null" >
+        census_register,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="fid != null" >
+        #{fid,jdbcType=INTEGER},
+      </if>
+      <if test="tid != null" >
+        #{tid,jdbcType=INTEGER},
+      </if>
+      <if test="fname != null" >
+        #{fname,jdbcType=VARCHAR},
+      </if>
+      <if test="ftel != null" >
+        #{ftel,jdbcType=VARCHAR},
+      </if>
+      <if test="age != null" >
+        #{age,jdbcType=INTEGER},
+      </if>
+      <if test="sex != null" >
+        #{sex,jdbcType=VARCHAR},
+      </if>
+      <if test="monthSal != null" >
+        #{monthSal,jdbcType=DECIMAL},
+      </if>
+      <if test="annualBonus != null" >
+        #{annualBonus,jdbcType=DECIMAL},
+      </if>
+      <if test="address != null" >
+        #{address,jdbcType=VARCHAR},
+      </if>
+      <if test="idCard != null" >
+        #{idCard,jdbcType=VARCHAR},
+      </if>
+      <if test="email != null" >
+        #{email,jdbcType=VARCHAR},
+      </if>
+      <if test="other != null" >
+        #{other,jdbcType=VARCHAR},
+      </if>
+      <if test="censusRegister != null" >
+        #{censusRegister,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.example.demo.bean.Friend" >
+    update friend
+    <set >
+      <if test="tid != null" >
+        tid = #{tid,jdbcType=INTEGER},
+      </if>
+      <if test="fname != null" >
+        fname = #{fname,jdbcType=VARCHAR},
+      </if>
+      <if test="ftel != null" >
+        ftel = #{ftel,jdbcType=VARCHAR},
+      </if>
+      <if test="age != null" >
+        age = #{age,jdbcType=INTEGER},
+      </if>
+      <if test="sex != null" >
+        sex = #{sex,jdbcType=VARCHAR},
+      </if>
+      <if test="monthSal != null" >
+        month_sal = #{monthSal,jdbcType=DECIMAL},
+      </if>
+      <if test="annualBonus != null" >
+        annual_bonus = #{annualBonus,jdbcType=DECIMAL},
+      </if>
+      <if test="address != null" >
+        address = #{address,jdbcType=VARCHAR},
+      </if>
+      <if test="idCard != null" >
+        Id_card = #{idCard,jdbcType=VARCHAR},
+      </if>
+      <if test="email != null" >
+        email = #{email,jdbcType=VARCHAR},
+      </if>
+      <if test="other != null" >
+        other = #{other,jdbcType=VARCHAR},
+      </if>
+      <if test="censusRegister != null" >
+        census_register = #{censusRegister,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where fid = #{fid,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.example.demo.bean.Friend" >
+    update friend
+    set tid = #{tid,jdbcType=INTEGER},
+      fname = #{fname,jdbcType=VARCHAR},
+      ftel = #{ftel,jdbcType=VARCHAR},
+      age = #{age,jdbcType=INTEGER},
+      sex = #{sex,jdbcType=VARCHAR},
+      month_sal = #{monthSal,jdbcType=DECIMAL},
+      annual_bonus = #{annualBonus,jdbcType=DECIMAL},
+      address = #{address,jdbcType=VARCHAR},
+      Id_card = #{idCard,jdbcType=VARCHAR},
+      email = #{email,jdbcType=VARCHAR},
+      other = #{other,jdbcType=VARCHAR},
+      census_register = #{censusRegister,jdbcType=VARCHAR}
+    where fid = #{fid,jdbcType=INTEGER}
+  </update>
+</mapper>

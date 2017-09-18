@@ -1,0 +1,33 @@
+									《#springBoot之Quartz学习》
+author:zhoucong   QQ：2632652610@qq.com
+
+#【springBoot之Quartz请看同目录下另外一个md文件】
+
+	文件目录解释：dbTables这个包里头存放的是sql脚本， 任务调度开源框架Quartz动态添加、修改和删除定时任务中才会用到
+
+
+#一、springBoot相关注解解释
+@Service用于标注业务层组件
+@Controller用于标注控制层组件（如struts中的action）
+@Repository用于标注数据访问组件，即DAO组件
+@Component泛指组件，当组件不好归类的时候，我们可以使用这个注解进行标注。【@Component：定义Spring管理Bean】
+
+#二、springBoot单元测试
+在SpringBoot里添加单元测试是非常简单的一件事，我们只需要添加SpringBoot单元测试的依赖jar，然后再添加两个注解就可搞定了。
+首先我们来添加单元测试所需要的jar
+<dependency>  
+    <groupId>org.springframework.boot</groupId>  
+    <artifactId>spring-boot-starter-test</artifactId>  
+</dependency> 
+然后核心代码如下：代码可参考package com.example.demo.junit;这个包
+package com.example.demo.junit;
+@RunWith(SpringJUnit4ClassRunner.class) // SpringJUnit支持，由此引入Spring-Test框架支持！ 
+@SpringBootTest(classes = SpringQuarzeApplication.class) // 指定我们SpringBoot工程的Application启动类
+@WebAppConfiguration // 由于是Web项目，Junit需要模拟ServletContext，因此我们需要给我们的测试类加上@WebAppConfiguration。
+public class JunitTest {
+}
+然后我们run一下，一个单元测试就搞定了。
+
+
+
+

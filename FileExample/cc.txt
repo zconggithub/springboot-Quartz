@@ -1,0 +1,42 @@
+﻿{
+    "dataHead": {
+        "creationDate": "2017-05-11",
+        "sourceCode": "02333",
+        "sourceName": "高旭"
+    },
+    "dataContent": {
+        "Name": "网三",
+        "pid": "38888032219999999",
+        "mobile": "15921009245",
+        "marital_status": "0",
+        "home_address": "湖北省孝感市云梦县",
+        "home_phone": "027-88888888",
+        "work_name": "天业公司",
+        "work_address": "上海浦东新区",
+        "work_phone": "0551-6699558",
+        "contacts": [
+            {
+                "name": "张四",
+                "phone": "1665588446",
+                "work_name": "天业公司",
+                "relationship": "0"
+            },{
+                "name": "张五",
+                "phone": "1558444595",
+                "work_name": "天业公司",
+                "relationship": "1"
+            }
+
+        ],
+        "loan_name": "天天乐花",
+        "loan_type": "试试",
+        "applied_at": "2017-05-11",
+        "confirm_at": "2017-05-11",
+        "tags": ["欺诈","恶意拖欠"],
+        "over_due_details": "就是不还",
+        "comment": "越期3月",
+        "from": "善林",
+        "intra": "内部",
+        "Refresh_time": "2017-05-11"
+    }
+}

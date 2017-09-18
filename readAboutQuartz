@@ -1,0 +1,311 @@
+									《#springBoot之Quartz学习》
+author:zhoucong   QQ：2632652610@qq.com
+
+参考博客资料：http://blog.csdn.net/bubei/article/details/2108778
+http://blog.csdn.net/zixiao217/article/details/53044890【最为详细，基础入门】
+任务调度开源框架Quartz动态添加、修改和删除定时任务【博客地址：http://blog.csdn.net/pengpegv5yaya/article/details/37595889】
+
+#一、介绍Quartz
+Quartz是一个开源的任务调度系统，它能用来调度很多任务的执行。
+运行环境
+Quartz 能嵌入在其他应用程序里运行。 
+Quartz 能在一个应用服务器里被实例化(或servlet容器), 并且参与XA事务
+Quartz能独立运行（通过JVM）,或者通过RMI 
+Quartz能被集群实例化
+
+									#【使用框架准备工作 #前提：】
+<dependency>  
+            <groupId>org.quartz-scheduler</groupId>  
+            <artifactId>quartz</artifactId>  
+            <version>2.2.1</version>  
+</dependency> 
+<dependency>
+		    <groupId>org.quartz-scheduler</groupId>
+		    <artifactId>quartz-jobs</artifactId>
+		    <version>2.2.1</version>
+</dependency>
+ <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context-support</artifactId>
+        </dependency>
+
+					#【【【【二、Quartz基本使用流程及相关详解】】】】
+二、Quartz基本使用流程及相关详解
+#2.1建立任务类【实现Job类，复写execute方法，这方法里头就是你要做的任务】
+								
+								【Job定时任务实例类】
+		2.1.1、一个任务是一个实现org.quartz.Job接口的类，任务类必须含有空构造器，它只有一个简单的方法：
+public void execute(JobExecutionContext context) throws JobExecutionException;
+	列如：当关联这个任务实例的触发器表明的执行时间到了的时候，调度程序Scheduler 会调用这个方法来执行任务，我们的任务内容就可以在这个方法中执行
+	public class HelloJob implements Job {
+    @Override
+    public void execute(JobExecutionContext context) throws JobExecutionException {
+        System.out.println("现在是北京时间:" + DateUtil.getCurrDateTime() + " - helloJob任务执行");
+    }
+}
+在该方法退出之前，会设置一个结果对象到JobExecutionContext 中。尽管这个结果对Quartz来说没什么意义，但是JobListeners或者TriggerListeners 来说，
+是可以监听查看job的执行情况的。后面会详细讲解监听器的内容。
+
+2.2通过调度器工厂获取调度器Scheduler
+							【Scheduler调度程序、SchedulerFactory调度程序工厂】
+	2.2.1、Scheduler调度程序
+		org.quartz.Scheduler这是Quartz 调度程序的主要接口。
+		Scheduler维护了一个JobDetails 和Triggers的注册表。一旦在Scheduler注册过了，当定时任务触发时间一到，调度程序就会负责执行预先定义的Job
+		调度程序Scheduler实例是通过SchedulerFactory工厂来创建的。一个已经创建的scheduler ，可以通过同一个工厂实例来获取它。 
+		调度程序创建之后，它只是出于”待机”状态，必须在任务执行前调用scheduler的start()方法启用调度程序。你还可以使用shutdown()方法关闭调度程序，
+		使用isShutdown()方法判断该调度程序是否已经处于关闭状态。
+		通过Scheduler的scheduleJob(…)方法的几个重载方法将任务纳入调度程序中。可以使用scheduleJob(JobDetail jobDetail, Trigger trigger)方法将我们预先定义的定时任务安排进调度计划中。
+		任务安排之后，你就可以调用start()方法启动调度程序了，当任务触发时间到了的时候，该任务将被执行。
+    2.2.2、SchedulerFactory调度程序工厂
+		SchedulerFactory有两个默认的实现类：StdSchedulerFactory和DirectSchedulerFactory。
+			譬如：Scheduler scheduler=StdSchedulerFactory.getDefaultScheduler();
+
+2.3、获取任务详情（任务实例）即JobDetail,对应①的任务类
+
+					【JobDetail定义任务实例的一些属性特征】
+	2.3.1、	org.quartz.JobDetail接口负责传输给定的任务实例的属性到Scheduler。JobDetail是通过JobBuilder创建的。
+		Quartz不会存储一个真实的Job类实例，但是允许你通过JobDetail定义一个任务实例——JobDetail是用来定义任务实例的。
+		任务Job有一个名称name 和组group 来关联。在一个Scheduler中这二者的组合必须是唯一的。触发器任务计划执行表的执行”机制”。多个触发器可以指向同一个工作，但一个触发器只能指向一个工作。
+		
+	2.3.2、Quartz通过一种领域特定语言(DSL)提供了一种自己的builder的风格API来创建任务调度相关的实体。DSL可以通过对类的静态方法的使用来调用：TriggerBuilder, JobBuilder, DateBuilder, JobKey, TriggerKey 以及其它的关于Schedule创建的实现。
+		客户端可以使用类似示例使用DSL：
+		/*静态引入builder*/
+		import static org.quartz.JobBuilder.newJob;
+		import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
+		import static org.quartz.TriggerBuilder.newTrigger;
+		核心代码块（需要引用上述包）：
+				JobDetail job = newJob(MyJob.class)
+		             .withIdentity("myJob")
+		             .build();
+		 		Trigger trigger = newTrigger() 
+		             .withIdentity(triggerKey("myTrigger", "myTriggerGroup"))
+		             .withSchedule(simpleSchedule()
+		                 .withIntervalInHours(1)
+		                 .repeatForever())
+		             .startAt(futureDate(10, MINUTES))
+		             .build();
+				scheduler.scheduleJob(job, trigger);//注册任务	
+		
+	方式二：获取JobDetail//定义一个JobDetail
+    JobDetail job =JobBuilder.newJob(HelloQuartz.class) //定义Job类为HelloQuartz类，这是真正的执行逻辑所在
+        .withIdentity("job1", "group1") //定义name/group
+        .usingJobData("name", "quartz") //定义属性
+        .build();
+2.4、获取触发器Trigger【我们详细讲解最常用的两种触发器：简单触发器SimpleTrigger、基于Cron表达式的触发器CronTrigger】
+	2.4.1、简单触发器SimpleTrigger
+		SimpleTrigger 包含几个特点：开始时间、结束时间、重复次数以及重复执行的时间间隔。
+		①重复的次数可以是零，一个正整数，或常量SimpleTrigger.REPEAT_INDEFINITELY。 
+		②重复执行的时间间隔可以是零，或者long类型的数值表示毫秒。值得注意的是，零重复间隔会造成触发器同时发生（或接近同时作为调度管理）。 
+		③“结束时间”的属性会重写重复的次数，这可能是有用的，如果你想创建一个触发器，如每10秒触发一次，直到一个给定的时刻，而不是要计算的次数，它会在开始时间和结束时间重复执行。结束时间一到，就算你指定了重复次数很多次(比如执行10W次)，但是时间一到它将不再执行。
+	【简单触发器SimpleTrigger的创建】
+	SimpleTrigger 实例创建依赖于TriggerBuilder 和SimpleScheduleBuilder ，使用Quartz提供的DSL风格创建触发器实例， 
+	首先静态引入builder，引入时间builder——DateBuilder:
+	import static org.quartz.TriggerBuilder.*;
+	import static org.quartz.SimpleScheduleBuilder.*;
+	import static org.quartz.DateBuilder.*:
+	【核心代码块，需要引用上述包】：
+		我们可以创建很多不同形式的触发器：
+	2.4.1.1、创建一个指定时间开始执行，但是不重复的触发器
+		使用startAt(Java.util.Date)设置触发器的第一次执行时间:
+		SimpleTrigger trigger = (SimpleTrigger) newTrigger()
+		    .withIdentity("trigger1", "group1")
+		    .startAt(myStartTime) // some Date
+		    .forJob("job1", "group1") // identify job with name, group strings
+		    .build();
+	2.4.1.2、创建一个指定时间开始执行，每10s执行一次，共执行10次的触发器
+		使用SimpleScheduleBuilder的withIntervalInSeconds(N)方法可以指定间隔N秒就执行一次；withRepeatCount(M)可以指定执行次数M。
+		trigger = newTrigger()
+		    .withIdentity("trigger3", "group1")
+		    .startAt(myTimeToStartFiring)  // if a start time is not given (if this line were omitted), "now" is implied
+		    .withSchedule(simpleSchedule()
+		        .withIntervalInSeconds(10)
+		        .withRepeatCount(10)) // note that 10 repeats will give a total of 11 firings
+		    .forJob(myJob) // identify job with handle to its JobDetail itself                   
+		    .build();
+	2.4.1.3、创建一个在未来第五分钟的时候执行一次的触发器
+		使用DateBuilder的futureDate方法可以指定在未来时间执行。
+			trigger = (SimpleTrigger) newTrigger()
+			    .withIdentity("trigger5", "group1")
+			    .startAt(futureDate(5, IntervalUnit.MINUTE)) 
+			    .forJob(myJobKey) /* job的jobKey*/
+			    .build();
+	2.4.1.4、创建一个马上执行、每个5分钟执行、知道22:00结束执行的触发器
+		使用TriggerBuilder的startNow()方法立即触发(scheduler调用start时算起，视优先级而定)； 
+		withIntervalInMinutes(5)每个5分钟执行一次； 
+		repeatForever()一直重复； 
+		endAt(dateOf(22, 0, 0))知道22:00终结触发器：
+		trigger = newTrigger()
+		    .withIdentity("trigger7", "group1")
+		    .startNow()
+		    .withSchedule(simpleSchedule()
+		        .withIntervalInMinutes(5)
+		        .repeatForever())
+		    .endAt(dateOf(22, 0, 0))
+		    .build();
+	2.4.1.5、创建一个在偶数小时执行、每两个小时执行一次的触发器
+		trigger = newTrigger()
+		    .withIdentity("trigger8") // group未指定，则会使用默认的组名
+		    .startAt(evenHourDate(null)) // 在下一个偶数小时开始执行(00:00:00、02:00:00、04:00:00等)
+		    .withSchedule(simpleSchedule()
+		        .withIntervalInHours(2)  //每隔两小时执行一次
+		        .repeatForever())        //一直重复执行
+		    .build();
+值得注意的是，如果没有调用startAt(..)方法，默认使用startNow()。 
+建议花点时间逐个尝试使用TriggerBuilder、SimpleScheduleBuilder 和DateBuilder提供的API方法以加深理解。
+
+					【关于简单触发器SimpleTrigger”熄火”的指令】
+			SimpleTrigger 包含一些指令在它”熄火”时可以告知Quartz怎么去处理。这些指令包含在SimpleTrigger 的常量中。
+			REPEAT_INDEFINITELY - 用于表示触发器的“重复计数”是不确定的。或者换句话说，触发应该不断重复直到触发的结尾时间戳
+			MISFIRE_INSTRUCTION_FIRE_NOW - 如果熄火，该指令会告诉Quartz应该马上再次触发
+			MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_EXISTING_REPEAT_COUNT - 如果熄火，该指令会告诉Quartz马上执行并计数累计到已经执行的次数当中去，如果结束时间已经过了，则不会再执行。
+			MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_REMAINING_REPEAT_COUNT - 如果熄火，会告诉Quartz想要现在就执行一次（即使现在不是它原本计划的触发时间）
+			MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_REMAINING_COUNT - 如果熄火，会告诉Quartz在下一次执行时间再次开始执行
+			一个使用”熄火”策略的触发器示例:
+			trigger = newTrigger()
+				    .withIdentity("trigger7", "group1")
+				    .withSchedule(simpleSchedule()
+				        .withIntervalInMinutes(5)
+				        .repeatForever()
+				        .withMisfireHandlingInstructionNextWithExistingCount())
+				    .build();
+	2.4.2、【基于Cron表达式的触发器CronTrigger】
+			创建CronTrigger
+			CronTrigger实例使用TriggerBuilder 和 CronScheduleBuilder创建，静态引入：
+			import static org.quartz.TriggerBuilder.*;
+			import static org.quartz.CronScheduleBuilder.*;
+			import static org.quartz.DateBuilder.*:
+	2.4.2.1、创建一个8到17点间每两分钟执行一次的Cron触发器:
+		cronTrigger1 = newTrigger()
+                .withIdentity("trigger3", "group1")
+                .withSchedule(cronSchedule("0 0/2 8-17 * * ?"))
+                .forJob("myJob", "group1")
+                .build();
+	2.4.2.2、创建一个每天10:42执行的Cron触发器:
+		cronTrigger2 = newTrigger()
+                .withIdentity("trigger3", "group1")
+                .withSchedule(dailyAtHourAndMinute(10, 42))
+                .forJob(job.getKey())
+                .build();
+/*或者
+ *我更喜欢下面这种方式
+*/
+cronTrigger3 = newTrigger()
+                .withIdentity("trigger3", "group1")
+                .withSchedule(cronSchedule("0 42 10 * * ?"))
+                .forJob(job.getKey())
+                .build();
+
+2.5、将触发器即任务详情注册到调度器Scheduler中便开始执行任务，即scheduler.scheduleJob(jobDetailOne, trigger);
+
+
+
+
+
+
+#二、Quartz内的一些关键对象
+ 如 Scheduler、Job、Trigger、JobExecutionContext等对象
+ 
+#三、Quartz API核心接口有：
+Scheduler – 与scheduler交互的主要API；
+Job – 你通过scheduler执行任务，你的任务类需要实现的接口；
+JobDetail – 定义Job的实例；
+###JobBuilder – 定义和创建JobDetail实例的接口;如下：
+JobDetail jobDetail=JobBuilder.newJob(Job.class).withIdentity(name, group).build();
+
+Jobs与JobDetails
+
+正如第一篇文章看到的那样，实现一个Job是非常简单的，只需要完成execute()方法就行了。 
+那么Jobs与JobDetails有什么关系呢？简而言之，Job是对任务的一个具体实现；谁执行了这个任务呢？这就需要JobDetail来实现，所以JobDetail就是Job的一个具体实例；如9点上语文课是一个具体任务，而刘老师在9点上语文课就是这个任务的一个具体实例。 
+Scheduler执行Job时，在调用execute()方法前会先实例化Job；一旦执行结束，该实例就会被丢弃，然后被垃圾回收。 
+需要注意的是Job必须有一个无参的构造器；另外在Job类中定义数据属性是没有意义的，因为这些属性值并不会在执行期间保存。
+ 
+
+1、其中Scheduler调度器对象，它的方法有start()、shutdown()等方法，负责管理整个调度作业．
+2、Job 又与几个对象有关 Job、JobDetail、JobDataMap
+
+3、关于JobDetail
+JobDetail不存储具体的实例，但它允许你定义一个实例，JobDetail 又指向JobDataMap
+JobDetail持有Job的详细信息，如它所属的组，名称等信息
+4、关于JobDataMap
+JobDataMap保存着任务实例的对象，并保持着他们状态信息，它是Ｍap接口的实现，即你可以往里面put和get一些你想存储和获取的信息．
+5、关于Trigger
+即根据具体约定的触发器，具体的如：SimpleTrigger、CronTrigger　等
+
+
+Quartz编程API几个重要接口
+Scheduler - 用于与调度程序交互的主程序接口。
+Job - 我们预先定义的希望在未来时间能被调度程序执行的任务类，
+JobDetail - 使用JobDetail来定义定时任务的实例。
+Trigger - 触发器，表明任务在什么时候会执行。定义了一个已经被安排的任务将会在什么时候执行的时间条件，比如上一节的实例的每2秒就执行一次。
+JobBuilder -用于声明一个任务实例，也可以定义关于该任务的详情比如任务名、组名等，这个声明的实例将会作为一个实际执行的任务。
+TriggerBuilder - 触发器创建器，用于创建触发器trigger实例。
+
+
+
+
+问题：
+ 1、定时任务 中的job中注入的service接口 为空 会直接跑出NullException异常
+
+
+
+
+
+
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+  【其他】      
+#JobDataMap提供了一种”初始化成员属性数据的机制”，在实现该Job接口的时候可能会用到。
+
+Job实例化的过程
+可能很多人对于一个Job实例的组成以及创建过程感到迷惑，笔者曾经也是如此，所以现在请耐心理解。
+你可以创建一个Job类，在调度程序(任务计划表)中创建很多JobDetai可以存储很多初始化定义信息——每一个都可以设置自己的属性和JobDataMap——将他们全部添加到调度程序中去。
+
+这里举个例子说明一下，你可以创建一个任务类实现Job接口，不妨称之为”SalesReportJob”，我们用它做销售报表使用。我们可以通过JobDataMap指定销售员的名称和销售报表的依据等等。这就会创建多个JobDetails了，例如”SalesReportForJoe”，”SalesReportForMike”分别对应在JobDataMap中指定的名字”joe”和”mike”。
+
+重要：当触发器的执行时间到了的时候，会加载与之关联的JobDetail，并在调度程序Scheduler中通过JobFactory的配置实例化它引用的Job。JobFactory 调用newInstance()创建一个任务实例，然后调用setter 方法设置在JobDataMap定义好的名字。你可以实现JobFactory，比如使用IOC或DI机制初始化的任务实例。
+
+Job的声明和并发
+关于Job的声明和并发需要说明一下，以下一对注解使用在你的Job类中，可以影响Quartz的行为：
+@DisallowConcurrentExecution : 可以添加到你的任务类中，它会告诉Quartz不要执行多个任务实例。
+注意措辞，在上面的”SalesReportJob”类添加该注解，将会只有一个”SalesReportForJoe”实例在给定的时间执行，但是”SalesReportForMike”是可以执行的。这个约束是基于JobDetail的，而不是基于任务类的。
+
+@PersistJobDataAfterExecution : 告诉Quartz在任务执行成功完毕之后（没有抛出异常），修改JobDetail的JobDataMap备份，以供下一个任务使用。
+
+如果你使用了@PersistJobDataAfterExecution 注解的话，强烈建议同时使用@DisallowConcurrentExecution注解，以避免当两个同样的job并发执行的时候产生的存储数据迷惑。
+
+Job的其他一些属性
+持久化 - 如果一个任务不是持久化的，则当没有触发器关联它的时候，Quartz会从scheduler中删除它。 请求恢复 - 如果一个任务请求恢复，一般是该任务执行期间发生了系统崩溃或者其他关闭进程的操作，当服务再次启动的时候，会再次执行该任务。这种情况下，JobExecutionContext.isRecovering()会返回true。
+JobDetail定义任务实例的一些属性特征
+
+org.quartz.JobDetail接口负责传输给定的任务实例的属性到Scheduler。JobDetail是通过JobBuilder创建的。
+
+Quartz不会存储一个真实的Job类实例，但是允许你通过JobDetail定义一个任务实例——JobDetail是用来定义任务实例的。
+
+任务Job有一个名称name 和组group 来关联。在一个Scheduler中这二者的组合必须是唯一的。
+
+触发器任务计划执行表的执行”机制”。多个触发器可以指向同一个工作，但一个触发器只能指向一个工作。
+
+JobDataMap任务数据映射
+
+JobDataMap用来保存任务实例的状态信息。
+当一个Job被添加到调度程序(任务执行计划表)scheduler的时候，JobDataMap实例就会存储一次关于该任务的状态信息数据。也可以使用@PersistJobDataAfterExecution注解标明在一个任务执行完毕之后就存储一次。
+
+JobDataMap实例也可以村粗一个触发器trigger。这是非常有用的，特别是当你的任务被多个触发器引用的时候，根据不同的触发时机，你可以提供不同的输入条件。
+
+JobExecutionContext 也可以再执行时包含一个方便的JobDataMap ，它合并了触发器的 JobDataMap (如果有的话)和Job的 JobDataMap (如果有的话)。
